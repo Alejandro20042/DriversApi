@@ -1,32 +1,41 @@
 using MongoDB.Driver;
-using Driver.Api.Models;
-using Microsoft.Extensions.Options;
+using MongoDB.Bson.Serialization;
+using Drivers.Api.Models;
 using Drivers.Api.Configurations;
-using System.Reflection.Metadata.Ecma335;
+using Microsoft.Extensions.Options;
+using MongoDB.Bson;
 
-
-namespace Drivers.Api.Services;
-
-public class DriverServices
+namespace Drivers.Api.Services
 {
-    private readonly IMongoCollection<Driver.Api.Models.Driver> _driversCollection;
-
-    public DriverServices(
-        IOptions<DatabaseSettings> databaseSetting){
-
-            //Inicializar mi cliente de MongoDB
+   public class DriverServices
+    {
+        private readonly IMongoCollection<Models.Driver> _driversCollection;
+        
+       public DriverServices(IOptions<DatabaseSettings> databaseSetting)
+        {
             var mongoClient = new MongoClient(databaseSetting.Value.ConnectionString);
-
-            //Conectar a la base de dato de MongoDB
-            var mongoDB =
-            mongoClient.GetDatabase(databaseSetting.Value.DatabaseName);
-            _driversCollection =
-            mongoDB.GetCollection<Driver.Api.Models.Driver>
-                (databaseSetting.Value.CollectionName);
-            
+            var mongoDB = mongoClient.GetDatabase(databaseSetting.Value.DatabaseName);
+            _driversCollection = mongoDB.GetCollection<Models.Driver>(databaseSetting.Value.CollectionName);
         }
-        public async Task<List<Driver.Api.Models.Driver>> GetAsync()=>
+        public async Task<List<Models.Driver>> GetAsync() =>
             await _driversCollection.Find(_ => true).ToListAsync();
     
+        public async Task InsertDriver(Driver driver)
+        {
+            await _driversCollection.InsertOneAsync(driver);
+            // await _driversCollection.DeleteOneAsync(filter, driver);
+        }
 
+        public async Task UpdateDriver(string id)
+        {
+            var filter = Builders<Driver>.Filter.Eq(s => s.Id, id);
+            await _driversCollection.DeleteOneAsync(filter);
+        }
+
+        public async Task<Driver> GetDriverById(string idTosearch)
+        {
+
+            return await _driversCollection.FindAsync(new BsonDocument{{"_id", new ObjectId(idTosearch)}}).Result.FirstAsync();
+        }
+    }
 }
