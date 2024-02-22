@@ -3,86 +3,79 @@ using Drivers.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace Drivers.Api.Controllers
+namespace Drivers.Api.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class DriversController : ControllerBase
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class DriversController : ControllerBase
+
+    private readonly ILogger<DriversController> _logger;
+    private readonly DriverServices _driverServices;
+
+    public DriversController(ILogger<DriversController> logger, DriverServices driverServices)
     {
-        private readonly ILogger<DriversController> _logger;
-        private readonly DriverServices _driverServices;
+        _logger = logger;
+        _driverServices = driverServices;
+    }
 
-        public DriversController(ILogger<DriversController> logger, DriverServices driverServices)
-        {
-            _logger = logger;
-            _driverServices = driverServices;
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetDrivers()
+    {
+        var drivers = await _driverServices.GetAsync();
+        return Ok(drivers);
+    }
+    [HttpPost]
+public async Task<IActionResult> InsertDriver([FromBody] Driver driverToInsert)
+{
+    if (driverToInsert == null)
+        return BadRequest();
 
-        [HttpGet]
-        public async Task<IActionResult> GetDrivers()
-        {
-            var drivers = await _driverServices.GetAsync();
-            return Ok(drivers);
-        }
+    if (string.IsNullOrEmpty(driverToInsert.Name))
+        ModelState.AddModelError("Name", "El driver no debe estar vacío");
 
-        [HttpPost]
-        public async Task<IActionResult> CreateDriver([FromBody] Driver driver)
-        {
-            if (driver == null)
-                return BadRequest();
+    if (!ModelState.IsValid)
+        return BadRequest(ModelState);
 
-            if (string.IsNullOrEmpty(driver.Name))
-                ModelState.AddModelError("Name", "El Driver no debe estar vacío");
+    await _driverServices.InsertDriver(driverToInsert);
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+    return Created("Created", true);
+}
 
-            await _driverServices.InsertDriver(driver);
+[HttpDelete("{id}")]
+public async Task<IActionResult> DeleteDriver(string idToDelete)
+{
+    if (idToDelete == null)
+        return BadRequest();
 
-            return Created("Created", true);
-        }
+    if (idToDelete == string.Empty)
+        ModelState.AddModelError("Id", "No debe dejar el id vacío");
 
-        [HttpDelete("ID")]
+    await _driverServices.DeleteDriver(idToDelete);
 
-        public async Task<IActionResult> DeleteDriver(string idToDelete)
-        {
-            if(idToDelete == null)
-                return BadRequest();
-            if(idToDelete == string.Empty)
-            ModelState.AddModelError("Id","No debe dejar el id vacio");
+    return Ok();
+}
 
-            await _driverServices.DeleteDriver(idToDelete);
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateDriver(string id, [FromBody] Driver driverToUpdate)
+    {
+        if (driverToUpdate == null)
+            return BadRequest();
 
+        if (string.IsNullOrEmpty(driverToUpdate.Id))
+            ModelState.AddModelError("Id", "No debe dejar el id vacío");
 
-            return Ok();
-        }
+        if (string.IsNullOrEmpty(driverToUpdate.Name))
+            ModelState.AddModelError("Name", "No debe dejar el nombre vacío");
 
-        [HttpPut("DriverToUpdate")]
+        if (driverToUpdate.Number <= 0)
+            ModelState.AddModelError("Number", "No debe dejar el Number vacío o con un número inválido");
 
-        public async Task<IActionResult> UpdateDriver(Drivers driverToUpdate)
-        {
-            if(driverToUpdate == null)
-                return BadRequest();
-            if(driverToUpdate.Id == string.Empty)
-                ModelState.AddModelError("Id","No debe dejar el id vacio");
-            if(driverToUpdate.Name == string.Empty)
-                ModelState.AddModelError("Name","No debe dejar el nombre vacio");
-            if(driverToUpdate.Number <= 0)
-                ModelState.AddModelError("Number","No debe dejar el Number vacio");
-            if(driverToUpdate.Team == string.Empty)
-                ModelState.AddModelError("Team","No debe dejar el Team vacio");
-            await _driverServices.UpdateDriver(driverToUpdate);
-            return OK();
-            
-        }
+        if (string.IsNullOrEmpty(driverToUpdate.Team))
+            ModelState.AddModelError("Team", "No debe dejar el Team vacío");
 
-        [HttpGet("ID")]
+        await _driverServices.UpdateDriver(driverToUpdate);
 
-        public async Task<IActionResult> GetDriverById(string idToSearch)
-        {
-            var drivers = await _driverServices.GetDriverById(idToSearch);
-            return Ok(drivers);
-
-        }
+        return Ok();
     }
 }
