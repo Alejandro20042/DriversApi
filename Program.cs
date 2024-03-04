@@ -1,4 +1,5 @@
 using Drivers.Api.Configurations;
+using Drivers.Api.Models;
 using Drivers.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +13,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddSingleton<DriverServices>();//segundo servicio
+// builder.Services.AddSingleton<DriverServices>();//segundo servicio
+// builder.Services.AddSingleton<CarrerraServices>();//segundo servicio
+builder.Services.AddScoped<CarreraServices>();//segundo servicio
+builder.Services.AddScoped<DriverServices>();//segundo servicio
+
+builder.Services.AddCors(options => options.AddPolicy("AngularClient",policy =>{
+    policy.WithOrigins("http://localhost:4200").AllowAnyMethod().AllowAnyHeader();
+}));
 
 var app = builder.Build();
 
@@ -28,5 +36,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseCors("AngularClient");
 
 app.Run();
